@@ -1,5 +1,7 @@
+
 from .constants import MAX_UINT256
 from .ExecutionContext import ExecutionContext
+import helpers 
 
 class Instruction:
     def __init__(self, opcode: int, name: str):
@@ -62,7 +64,9 @@ PUSH2 = register_instruction(
     0x61,
     "PUSH2",
     #NOT RIGHT
-    (lambda ctx: ctx.stack.push(ctx.read_code(2))),
+    # (lambda ctx: (ctx.stack.push(ctx.read_code(1)),ctx.stack.push(ctx.read_code(1)))),
+   helpers.push2,
+
 )
 
 def decode_opcode(context: ExecutionContext) -> Instruction:

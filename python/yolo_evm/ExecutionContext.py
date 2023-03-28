@@ -3,9 +3,9 @@ from .Memory import Memory
 from .Stack import Stack
 
 class ExecutionContext:
-    def __init__(self,code=bytes() ,pc=0,stack=Stack(), memory=Memory()) ->None:
+    def __init__(self,code=bytes(),stack=None ,pc=0, memory=Memory()) ->None:
         self.code = code
-        self.stack = stack
+        self.stack = Stack()
         self.memory = memory
         self.pc = pc
         self.stopped = False

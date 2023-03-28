@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from yolo_evm.runner import run
+import gc
 
 import sys
 import json
@@ -33,19 +34,21 @@ def test():
 #             # to pass down more arguments to the evm function
             code = bytes.fromhex(test['code']['bin'])
             print("CODE: " , code.hex())
-            context = run(code)
-           
+            cntxt=0
+            cntxt = run(code)
+            print("DEFAULTS")
+        
            #make sure to test return value to? maybe not feasible
-            stack = context.stack.stack
-            print("stack: ", stack)
+            
+            print("stack: ", cntxt.stack.stack)
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
-            if stack != expected_stack:
+            if cntxt.stack.stack != expected_stack:
                 print(f"❌ Test #{i + 1}/{total} {test['name']}")
-                if stack != expected_stack:
+                if cntxt.stack.stack != expected_stack:
                     print("Stack doesn't match")
                     print(" expected:", expected_stack)
-                    print("   actual:", stack)
+                    print("   actual:", cntxt.stack.stack)
                 
                 print("")
                 print("Test code:")
@@ -80,7 +83,8 @@ def test():
             #     break
             # else:
             #     print(f"✓  Test #{i + 1}/{total} {test['name']}")
-
+        del cntxt
+        gc.collect()
 
 if __name__ == '__main__':
     #main()
