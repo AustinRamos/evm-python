@@ -16,3 +16,4 @@ def run(code: bytes) -> None:
         print("stack: ", context.stack.stack)
         print("memory: " ,context.memory.memory)
         print()
+    print(f"Output: 0x{context.returndata.hex()}")

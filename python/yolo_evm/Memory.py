@@ -27,4 +27,5 @@ class Memory:
         return self.memory[offset]
 
     def load_range(self,offset, length):
+            #we could use a slice here, but this lets us get 0 bytes if we read past the end of concrete memory 
         return bytes(self.load(x) for x in range(offset, offset+length))
