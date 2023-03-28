@@ -17,3 +17,5 @@ def run(code: bytes) -> None:
         print("memory: " ,context.memory.memory)
         print()
     print(f"Output: 0x{context.returndata.hex()}")
+
+    return context

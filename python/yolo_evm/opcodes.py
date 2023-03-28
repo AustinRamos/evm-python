@@ -58,6 +58,12 @@ MSTORE8 = register_instruction(
     "RETURN",
     (lambda ctx: ctx.set_return_data(ctx.stack.pop(),ctx.stack.pop())),
 )
+PUSH2 = register_instruction(
+    0x61,
+    "PUSH2",
+    #NOT RIGHT
+    (lambda ctx: ctx.stack.push(ctx.read_code(2))),
+)
 
 def decode_opcode(context: ExecutionContext) -> Instruction:
     if context.pc < 0:
