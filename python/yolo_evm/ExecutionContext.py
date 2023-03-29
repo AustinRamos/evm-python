@@ -15,6 +15,9 @@ class ExecutionContext:
         self.stopped = True
         self.returndata= self.memory.load_range(offset,length)
 
+    def set_program_counter(self, _pc:int) -> None:
+        self.pc = _pc
+
     def stop(self) ->None:
         self.stopped = True
     def read_code(self, num_bytes) -> int:

@@ -39,16 +39,18 @@ def test():
             print("DEFAULTS")
         
            #make sure to test return value to? maybe not feasible
-            
-            print("stack: ", cntxt.stack.stack)
+            #stack=cntxt.stack.stack.reverse()
+            stack =cntxt.stack.stack
+            # if cntxt.stack.stack:
+            #     stack=cntxt.stack.stack.reverse()
             expected_stack = [int(x, 16) for x in test['expect']['stack']]
             
-            if cntxt.stack.stack != expected_stack:
+            if stack != expected_stack:
                 print(f"❌ Test #{i + 1}/{total} {test['name']}")
-                if cntxt.stack.stack != expected_stack:
+                if stack != expected_stack:
                     print("Stack doesn't match")
                     print(" expected:", expected_stack)
-                    print("   actual:", cntxt.stack.stack)
+                    print("   actual:", stack)
                 
                 print("")
                 print("Test code:")

@@ -7,7 +7,7 @@ def run(code: bytes) -> ExecutionContext:
     Executes code in a fresh context.
     """
     context = ExecutionContext(code=code)
-
+#60016002
     while not context.stopped:
         print("STACK CONTINUE: " , context.stack.stack)
         pc_before = context.pc
