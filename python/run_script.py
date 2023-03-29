@@ -41,6 +41,9 @@ def test():
            #make sure to test return value to? maybe not feasible
             #stack=cntxt.stack.stack.reverse()
             stack =cntxt.stack.stack
+
+
+            stack.reverse()
             # if cntxt.stack.stack:
             #     stack=cntxt.stack.stack.reverse()
             expected_stack = [int(x, 16) for x in test['expect']['stack']]

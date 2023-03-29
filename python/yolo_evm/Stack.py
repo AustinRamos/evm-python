@@ -6,6 +6,7 @@ class Stack:
         self.stack = []
         self.max_depth = max_depth
 
+    
     def push(self, item: int) -> None:
         if item < 0 or item > 2**256 - 1:
             raise InvalidStackItem({"item": item})
@@ -20,3 +21,15 @@ class Stack:
             raise StackUnderflow()
 
         return self.stack.pop()
+
+
+class StackUnderflow(Exception):
+    ...
+
+
+class StackOverflow(Exception):
+    ...
+
+
+class InvalidStackItem(Exception):
+    ...

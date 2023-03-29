@@ -1,4 +1,7 @@
 
+from dataclasses import dataclass
+from typing import Callable, Optional, Sequence, Union
+import sys
 from exceptions import InvalidJumpDestination
 from .constants import MAX_UINT256
 from .ExecutionContext import ExecutionContext
@@ -22,6 +25,42 @@ class InvalidCodeOffset(Exception):
 class DuplicateOpcode(Exception):
     ...
 
+
+class InstructionRegistry:
+    def __init__(self):
+        self.by_code = [None] * 256
+        self.by_name = {}
+        self.by_func = {}
+
+    def __getitem__(self, item: Union[int, str, object]) -> Optional[Instruction]:
+        if isinstance(item, int):
+            retrieved = self.by_code[item]
+            return retrieved
+
+        if isinstance(item, str):
+            return self.by_name[item]
+
+        if callable(item):
+            return self.by_func[item]
+
+        raise TypeError(f"Unexpected type for instruction lookup: {type(item)}")
+
+    def __iter__(self):
+        return iter([i for i in self.by_code if i is not None])
+
+    def __len__(self):
+        return len(self.by_name)
+
+    def add(self, instruction: Instruction):
+        if self.by_code[instruction.opcode] is not None:
+            raise DuplicateOpcode({"opcode": instruction.opcode})
+
+        self.by_code[instruction.opcode] = instruction
+        self.by_name[instruction.name] = instruction
+        self.by_func[instruction.execute] = instruction
+
+
+REGISTRY = InstructionRegistry()
 INSTRUCTIONS = []
 INSTRUCTIONS_BY_OPCODE = {}
 
@@ -36,6 +75,73 @@ def register_instruction(opcode: int, name: str, execute_func: callable):
     INSTRUCTIONS_BY_OPCODE[opcode] = instruction
 
     return instruction
+
+
+def assemble(instructions: Sequence[Union[Instruction, int, object]], print_bin=True) -> bytes:
+    result = bytes()
+    for item in instructions:
+        if isinstance(item, Instruction):
+            result += item.to_bytes()
+        elif isinstance(item, int):
+            result += int_to_bytes(item)
+        elif callable(item):
+            _instruction = REGISTRY[item]
+            result += bytes([_instruction.opcode])
+        elif isinstance(item, str):
+            # assume this is our assembler syntax, as produced by disasm.py
+            # e.g. <offset>: <OPCODE|UNKNOWN|DATA> [operand] [# comment]
+            if item.startswith("#"):
+                continue
+
+            comment_start = item.find("#")
+            if comment_start != -1:
+                item = item[:comment_start]
+
+            tokens = item.split(":", 2)
+            if len(tokens) > 2:
+                raise ValueError(f"Invalid item: {item}")
+            elif len(tokens) == 2:
+                offset_str, rest = item.split(":")
+                offset = int(offset_str.strip(), 16)
+                if offset != len(result):
+                    # print to stderr
+                    print(
+                        f"Warning: expected to write at offset {offset_str}, but currently at {len(result):04x}",
+                        file=sys.stderr,
+                    )
+            else:
+                rest = item
+
+            tokens = rest.strip().split(" ", 2)
+            instruction_str = tokens[0].strip()
+            if instruction_str == "UNKNOWN" or instruction_str == "DATA":
+                hex_str = tokens[1].strip()
+                result += bytes.fromhex(hex_str[2:] if hex_str.startswith("0x") else hex_str)
+
+            else:
+                instruction = REGISTRY[instruction_str]
+
+                if not instruction:
+                    raise ValueError(f"Unknown instruction {instruction_str}")
+
+                result += instruction.opcode.to_bytes(1, "big")
+
+                if len(tokens) > 1:
+                    operand = tokens[1].strip()
+                    result += bytes.fromhex(operand[2:] if operand.startswith("0x") else operand)
+
+        else:
+            raise TypeError(f"Unexpected {type(item)} in {instructions}")
+
+    if print_bin:
+        print(result.hex())
+
+    return result
+
+def swap(self,i: int) -> None:
+    if len(self.stack) < i:
+        raise StackUnderflow()
+    self.stack[-1], self.stack[-i-1] = self.stack[-i-1],self.stack[-1]
 
 def _do_jump(ctx:ExecutionContext, target_pc: int)->None:
     if target_pc not in ctx.jumpdests:
@@ -74,7 +180,16 @@ SUB = register_instruction(
 MUL = register_instruction(
     0x02,
     "MUL",
-    (lambda ctx: ctx.stack.push((ctx.stack.pop() * ctx.stack.pop()) % 2 ** 256)),
+    (lambda ctx: ctx.stack.push((ctx.stack.pop() * ctx.stack.pop()) % 2**256)),
+)
+def div(ctx)->None:
+    val = int(ctx.stack.pop() / ctx.stack.pop())
+    val = val%2**256
+    ctx.stack.push(val)
+DIV = register_instruction(
+    0x04,
+    "DIV",
+    div,
 )
 
 MSTORE8 = register_instruction(
@@ -168,6 +283,10 @@ DUP14 = register_instruction(0x8D, "DUP14", lambda ctx: ctx.stack.push(ctx.stack
 DUP15 = register_instruction(0x8E, "DUP15", lambda ctx: ctx.stack.push(ctx.stack.peek(14)))
 DUP16 = register_instruction(0x8F, "DUP16", lambda ctx: ctx.stack.push(ctx.stack.peek(15)))
 
+POP = register_instruction(0x50, "POP", lambda ctx: ctx.stack.pop())
+
+
+SWAP1 = register_instruction(0x90, "SWAP1", lambda ctx: ctx.stack.swap(1))
 def valid_jump_destinations(code: bytes) ->set[int]:
     jumpdests=set()
     i=0
@@ -194,3 +313,8 @@ def decode_opcode(context: ExecutionContext) -> Instruction:
         raise UnknownOpcode({"opcode": opcode})
 
     return instruction
+
+
+# thanks, https://stackoverflow.com/questions/21017698/converting-int-to-bytes-in-python-3
+def int_to_bytes(x: int) -> bytes:
+    return x.to_bytes(max(1, (x.bit_length() + 7) // 8), "big")
