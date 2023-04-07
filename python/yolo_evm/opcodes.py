@@ -18,6 +18,9 @@ class Instruction:
 class UnknownOpcode(Exception):
     ...
 
+class DivideByZero(Exception):
+    ...
+
 
 class InvalidCodeOffset(Exception):
     ...
@@ -162,6 +165,10 @@ def execute_JUMPI(ctx: ExecutionContext)->None:
     if cond !=0:
         _do_jump(ctx,target_pc)
 
+def mul(ctx)->None:
+    val = int(ctx.stack.pop() * ctx.stack.pop())
+    val = val%2**256
+    ctx.stack.push(val)
 
 STOP = register_instruction(0x00, "STOP", (lambda ctx: ctx.stop()))
 
@@ -180,12 +187,40 @@ SUB = register_instruction(
 MUL = register_instruction(
     0x02,
     "MUL",
-    (lambda ctx: ctx.stack.push((ctx.stack.pop() * ctx.stack.pop()) % 2**256)),
+    mul,
+)
+def mod(ctx)->None:
+    val1 = ctx.stack.pop()
+    val2 = ctx.stack.pop()
+    if val2 ==0:
+        ctx.stack.push(0)
+        return
+
+    val = int(val1 % val2)
+    
+    ctx.stack.push(val)
+
+MOD = register_instruction(
+    0x06,
+    "MOD",
+    mod,
 )
 def div(ctx)->None:
-    val = int(ctx.stack.pop() / ctx.stack.pop())
+    val1 = ctx.stack.pop()
+    val2 = ctx.stack.pop()
+    if val2 ==0:
+        ctx.stack.push(0)
+        return
+
+    val = int(val1 / val2)
     val = val%2**256
     ctx.stack.push(val)
+
+
+
+
+
+
 DIV = register_instruction(
     0x04,
     "DIV",
@@ -232,6 +267,11 @@ PC = register_instruction(
   (lambda ctx: ctx.stack.push(ctx.pc)),
 )
 
+CALLDATALOAD = register_instruction(
+    0x35,
+    "CALLDATALOAD",
+  (lambda ctx: ctx.stack.push(ctx.calldata.read_word(ctx.stack.pop()))),
+)
 #PUSH INSTRUCTIONS
 PUSH1 = register_instruction(0x60, "PUSH1", lambda ctx: ctx.stack.push(ctx.read_code(1)))
 PUSH2 = register_instruction(0x61, "PUSH2", lambda ctx: ctx.stack.push(ctx.read_code(2)))
